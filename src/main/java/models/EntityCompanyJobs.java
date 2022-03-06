@@ -10,4 +10,20 @@ public class EntityCompanyJobs {
         this.company = company;
         this.jobCount = jobCount;
     }
+
+    public String getCompany() {
+        return company;
+    }
+
+    public void setCompany(String company) {
+        this.company = company;
+    }
+
+    public String getJobCount() {
+        return jobCount;
+    }
+
+    public void setJobCount(String jobCount) {
+        this.jobCount = jobCount;
+    }
 }

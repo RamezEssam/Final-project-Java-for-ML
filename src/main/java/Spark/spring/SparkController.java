@@ -4,10 +4,7 @@ import models.DataGeneral;
 import models.EntityCompanyJobs;
 import models.EntityRow;
 import models.EntitySummary;
-import org.apache.spark.sql.DataFrameReader;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.*;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,36 +16,29 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.count;
 
 @RequestMapping("spark-context")
 @Controller
 public class SparkController {
+
+
     @Autowired
     SparkSession sparkSession;
 
-    //@Autowired
-    //private final Services services;
-    @Autowired
-    private final Dataset<Row> data;
-
-    private final DataGeneral dataGeneral;
-
-    private final DataFrameReader dataframereader = sparkSession.read().option("header", true);
-
-    public final Dataset<Row> dataset = dataframereader.csv("resources/wuzzuf_jobs.csv");
-
-    @Autowired
-    public SparkController(Dataset<Row> data, DataGeneral dataGeneral) {
-        //this.services = services;
-        this.data = data;
-//        data.printSchema();
-        this.dataGeneral = dataGeneral;
+    public SparkController(SparkSession sparkSession){
+        this.sparkSession = sparkSession;
     }
+
+
     // this request prints the schema of the data already uploaded as bean
-    @GetMapping("show-data")
+    @GetMapping("DisplayData")
     public String show(Model model){
-        Dataset<Row> dataSet = dataGeneral.getData(dataset);
+        Dataset<Row> dataSet = sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
         List<EntityRow> entityRows = new ArrayList<EntityRow>();
         dataSet.toLocalIterator().forEachRemaining(s->{
             entityRows.add(new EntityRow(
@@ -64,12 +54,13 @@ public class SparkController {
         });
 
         model.addAttribute("rows", entityRows);
-        return "show-data/index";
+        return "DisplayData/index";
     }
 
     @GetMapping("show-summary")
     public String showSummary(Model model){
-        Dataset<Row> summary = dataGeneral.getSummary(dataset);
+        Dataset<Row> dataSet = sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
+        Dataset<Row> summary = dataSet.summary();
         List<EntitySummary> entitySummaries = new ArrayList<EntitySummary>();
         summary.toLocalIterator().forEachRemaining(s->{
             entitySummaries.add(new EntitySummary(
@@ -90,7 +81,8 @@ public class SparkController {
     }
     @GetMapping("clean-data")
     public String cleanData(Model model){
-        Dataset<Row> cleanData = dataGeneral.cleanData(dataset);
+        Dataset<Row> dataSet =sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
+        Dataset<Row> cleanData = dataSet.dropDuplicates().summary();
         List<EntitySummary> entitySummaries = new ArrayList<EntitySummary>();
         cleanData.toLocalIterator().forEachRemaining(s->{
             entitySummaries.add(new EntitySummary(
@@ -111,7 +103,8 @@ public class SparkController {
     }
     @GetMapping("jobs-per-company")
     public String jobsPerCompany(Model model){
-        Dataset<Row> jobsPerCompany = dataGeneral.jobsPerCompany(dataset);
+        Dataset<Row> dataSet = sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
+        Dataset<Row> jobsPerCompany = dataSet.groupBy("Company").agg(count("Title")).orderBy(col("count(Title)").desc());
         List<EntityCompanyJobs> entityCompanyJobs = new ArrayList<EntityCompanyJobs>();
         jobsPerCompany.toLocalIterator().forEachRemaining(s->{
             entityCompanyJobs.add(new EntityCompanyJobs(
@@ -127,7 +120,8 @@ public class SparkController {
 
     @GetMapping("popular-job-titles")
     public String popularJobTitles(Model model){
-        Dataset<Row> popularJobTitles = dataGeneral.popularJobTitles(dataset);
+        Dataset<Row> dataSet = sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
+        Dataset<Row> popularJobTitles = dataSet.groupBy("Title").agg(count("Title")).orderBy(col("count(Title)").desc());
         List<EntityCompanyJobs> entityCompanyJobs = new ArrayList<EntityCompanyJobs>();
         popularJobTitles.toLocalIterator().forEachRemaining(s->{
             entityCompanyJobs.add(new EntityCompanyJobs(
@@ -143,7 +137,8 @@ public class SparkController {
 
     @GetMapping("popular-areas")
     public String popularAreas(Model model){
-        Dataset<Row> popularAreas = dataGeneral.popularAreas(dataset);
+        Dataset<Row> dataSet = sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
+        Dataset<Row> popularAreas = dataSet.groupBy("Location").agg(count("Location")).orderBy(col("count(Location)").desc());
         List<EntityCompanyJobs> entityCompanyJobs = new ArrayList<EntityCompanyJobs>();
         popularAreas.toLocalIterator().forEachRemaining(s->{
             entityCompanyJobs.add(new EntityCompanyJobs(
@@ -159,7 +154,15 @@ public class SparkController {
 
     @GetMapping("popular-skills")
     public String popularSkills(Model model){
-        Dataset<Row> popularSkills = dataGeneral.popularSkills(dataset);
+        Dataset<Row> dataSet = sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
+        List<String> allSkills = new ArrayList<String>();
+        dataSet.select("Skills").toLocalIterator().forEachRemaining(s -> {
+            List<String> skills = Arrays.asList(s.getString(0).split(","));
+            allSkills.addAll(skills);
+        });
+        Dataset<Row> Allskills = sparkSession.createDataset(allSkills, Encoders. STRING()).toDF("Skill");
+        Allskills = Allskills.groupBy("Skill").agg(count("Skill")).orderBy(col("count(Skill)").desc());
+        Dataset<Row> popularSkills = Allskills;
         List<EntityCompanyJobs> entityCompanyJobs = new ArrayList<EntityCompanyJobs>();
         popularSkills.toLocalIterator().forEachRemaining(s->{
             entityCompanyJobs.add(new EntityCompanyJobs(
@@ -183,9 +186,9 @@ public class SparkController {
         Color[] sliceColors = new Color[] { new Color(224, 68, 14), new Color(230, 105, 62), new Color(236, 143, 110), new Color(243, 180, 159), new Color(246, 199, 182) };
         chart.getStyler().setSeriesColors(sliceColors);
 
-        DataGeneral df = new DataGeneral();
+        Dataset<Row> dataSet = sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
+        Dataset<Row> jobsPerCompany = dataSet.groupBy("Company").agg(count("Title")).orderBy(col("count(Title)").desc());
 
-        Dataset<Row> jobsPerCompany =  df.jobsPerCompany(dataset);
 
 
         final int[] i = {0};
@@ -209,8 +212,9 @@ public class SparkController {
         chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
         chart.getStyler().setXAxisLabelRotation(45);
 
-        DataGeneral df = new DataGeneral();
-        Dataset<Row> popularTitles = df.popularJobTitles(dataset);
+        Dataset<Row> dataSet = sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
+        Dataset<Row> popularTitles = dataSet.groupBy("Title").agg(count("Title")).orderBy(col("count(Title)").desc());
+
         List<String> titlesList = new ArrayList<String>();
         final int[] i = {0};
         popularTitles.toLocalIterator().forEachRemaining(s->{
@@ -245,8 +249,10 @@ public class SparkController {
         chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
         chart.getStyler().setXAxisLabelRotation(45);
 
-        DataGeneral df = new DataGeneral();
-        Dataset<Row> popularAreas = df.popularAreas(dataset);
+        Dataset<Row> dataSet = sparkSession.read().option("header", true).csv("src/main/resources/Wuzzuf_Jobs.csv");
+        Dataset<Row> popularAreas = dataSet.groupBy("Location").agg(count("Location")).orderBy(col("count(Location)").desc());
+
+
         List<String> areasList = new ArrayList<String>();
         final int[] i = {0};
         popularAreas.toLocalIterator().forEachRemaining(s->{

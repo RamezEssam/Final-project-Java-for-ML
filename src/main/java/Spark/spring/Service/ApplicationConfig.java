@@ -48,11 +48,11 @@ public class ApplicationConfig {
                 .appName("Integrating Spring-boot with Apache Spark")
                 .getOrCreate();
     }
-    @Bean
+    /*@Bean
     public Dataset<Row> readata(SparkSession sparkSession){
         Dataset<Row> dataset = sparkSession.read().option("header","true").csv("src/main/resources/Wuzzuf_Jobs.csv");
         return dataset;
-    }
+    }*/
 
     @Bean
     public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
@@ -61,10 +61,12 @@ public class ApplicationConfig {
 
 
 
-    @Bean
+    /*@Bean
     public DataGeneral dataStart(){
         return new DataGeneral();
-    }
+    }*/
+
+
 
     /*@Bean
     public EntityRow entityRow(){
