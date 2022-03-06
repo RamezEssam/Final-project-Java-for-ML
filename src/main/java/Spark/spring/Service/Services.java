@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 public class Services {
     @Autowired
     SparkSession sparkSession;
-   //Dataset<Row> data = readata(sparkSession);
+    //Dataset<Row> data = readata(sparkSession);
 
     public ResponseEntity<String> showData(Dataset<Row> data){
-       // Dataset<Row> dataset = sparkSession.read().option("header", "true").csv("src/main/resources/pyramids.csv");
+        // Dataset<Row> dataset = sparkSession.read().option("header", "true").csv("src/main/resources/pyramids.csv");
         // response = dataset.show();
         return ResponseEntity.ok(data.showString(20,5,true));
     }

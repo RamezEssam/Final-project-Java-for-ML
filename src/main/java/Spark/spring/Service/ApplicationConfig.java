@@ -1,6 +1,10 @@
 package Spark.spring.Service;
 
+import Spark.spring.SparkController;
 import models.DataGeneral;
+import models.EntityCompanyJobs;
+import models.EntityRow;
+import models.EntitySummary;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
@@ -46,9 +50,7 @@ public class ApplicationConfig {
     }
     @Bean
     public Dataset<Row> readata(SparkSession sparkSession){
-
         Dataset<Row> dataset = sparkSession.read().option("header","true").csv("src/main/resources/Wuzzuf_Jobs.csv");
-      // Dataset<Row> d = sparkSession.sql("select Cast(Title as String) Title From dataset");
         return dataset;
     }
 
@@ -57,8 +59,25 @@ public class ApplicationConfig {
         return new PropertySourcesPlaceholderConfigurer();
     }
 
+
+
     @Bean
     public DataGeneral dataStart(){
         return new DataGeneral();
     }
+
+    /*@Bean
+    public EntityRow entityRow(){
+        return new EntityRow();
+    }*/
+
+    /*@Bean
+    public EntitySummary entitySummary(){
+        return new EntitySummary();
+    }*/
+
+    /*@Bean
+    EntityCompanyJobs entityCompanyJobs(){
+        return new EntityCompanyJobs();
+    }*/
 }
